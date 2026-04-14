@@ -49,3 +49,10 @@ uvicorn==0.44.0
 websockets==16.0
 xxhash==3.6.0
 zstandard==0.25.0
+fastapi==0.115.0
+uvicorn==0.30.6
+httpx==0.27.2
+python-dotenv==1.0.1
+langchain==0.3.7             # Core LangChain framework
+langchain-google-genai==2.0.7 # Google Gemini integration for LangChain
+langchain-core==0.3.19       # Core abstractions (prompts, tools, agents)
