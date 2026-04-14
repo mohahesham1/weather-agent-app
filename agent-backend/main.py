@@ -1,7 +1,30 @@
+
+# --- DEBUG ENVIRONMENT INFO ---
+import sys
+print("[DEBUG] Python executable:", sys.executable)
+print("[DEBUG] sys.path:", sys.path)
+try:
+    import uvicorn
+    print("[DEBUG] Successfully imported uvicorn, version:", uvicorn.__version__)
+except Exception as e:
+    print("[DEBUG] Failed to import uvicorn:", e)
+try:
+    import fastapi
+    print("[DEBUG] Successfully imported fastapi, version:", fastapi.__version__)
+except Exception as e:
+    print("[DEBUG] Failed to import fastapi:", e)
+try:
+    import aiohttp
+    print("[DEBUG] Successfully imported aiohttp, version:", aiohttp.__version__)
+except Exception as e:
+    print("[DEBUG] Failed to import aiohttp:", e)
+print("[DEBUG] Starting main.py...")
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from .agent import agent_executor
+from langchain_core.messages import HumanMessage
+from agent import agent_executor
 
 app = FastAPI(
     title="Weather Agent Backend",
@@ -40,24 +63,43 @@ async def chat(request: ChatRequest):
 
     """Process a user message through the LangChain agent."""
 
-    result = await agent_executor.ainvoke({
-        "input": request.message
-    })
-    # .ainvoke() is the ASYNC version of .invoke().
-    # It starts the full agent loop:
-    # user question -> LLM -> tool calls -> results -> final answer
-    #
-    # {"input": request.message} passes the user's text to the
-    # {input} placeholder in the prompt template.
-    #
-    # The result is a dict like:
-    # {"input": "What's the weather?", "output": "It's 35C in..."}
+    try:
+        result = await agent_executor.ainvoke({
+            "messages": [HumanMessage(content=request.message)]
+        })
+        # LangGraph's create_react_agent expects messages format
+        # Result will be a dict with {"messages": [...]} containing all conversation messages
 
-    return ChatResponse(response=result["output"])
-    # Extract just the "output" (the agent's final answer)
-    # and wrap it in a ChatResponse for validation.
+        # Extract the response from the messages
+        response_text = None
+        
+        if isinstance(result, dict) and "messages" in result:
+            messages = result.get("messages", [])
+            # Get the last message (should be AI response)
+            if messages:
+                last_msg = messages[-1]
+                if hasattr(last_msg, "content"):
+                    response_text = last_msg.content
+                elif isinstance(last_msg, dict) and "content" in last_msg:
+                    response_text = last_msg["content"]
+        
+        # Fallback if we can't extract from messages
+        if not response_text:
+            response_text = result.get("output", str(result)) if isinstance(result, dict) else str(result)
+        
+        return ChatResponse(response=response_text)
+    
+    except Exception as e:
+        # If agent fails, return helpful error message
+        return ChatResponse(response=f"I encountered an error processing your request: {str(e)}")
 
 
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "weather-agent-backend"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)

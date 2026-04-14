@@ -95,8 +95,7 @@ async function sendMessage() {
  */
 async function fetchChatResponse(message) {
     const payload = {
-        query: message,
-        chat_history: chatHistory.slice(0, -1) // Exclude the current user message
+        message: message
     };
 
     const response = await fetch(CHAT_ENDPOINT, {

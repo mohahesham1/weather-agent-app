@@ -23,10 +23,7 @@ import httpx
 # httpx with "async/await" lets the server handle other requests
 # WHILE waiting for OpenWeatherMap to respond. Much faster.
 
-from .config import OPENWEATHER_API_KEY, OPENWEATHER_BASE_URL
-# The dot (.) in ".config" means "import from the config.py file
-# in the SAME package (same folder)." This is called a relative import.
-# Without the dot, Python would look for a global package called "config."
+from config import OPENWEATHER_API_KEY, OPENWEATHER_BASE_URL
 
 # A dictionary that maps AQI numbers to human-readable labels.
 # OpenWeatherMap returns 1-5, but "Good" is more useful than "1".

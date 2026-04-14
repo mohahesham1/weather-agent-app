@@ -29,7 +29,7 @@ from langchain.tools import tool
 #   2. Parameter types -> tells LLM what arguments to pass
 #   3. Docstring -> tells LLM when/why to use this tool
 
-from .config import MCP_SERVER_URL
+from config import MCP_SERVER_URL
 
 
 @tool

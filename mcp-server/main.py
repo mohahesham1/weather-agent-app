@@ -18,8 +18,8 @@ from fastapi.middleware.cors import CORSMiddleware
 # Our frontend (port 5173) needs to call this server (port 8000).
 # CORSMiddleware tells the browser: "allow these cross-origin requests."
 
-from .services import get_current_weather, get_forecast, get_air_quality
-from .models import CurrentWeatherResponse, ForecastResponse, AirQualityResponse
+from services import get_current_weather, get_forecast, get_air_quality
+from models import CurrentWeatherResponse, ForecastResponse, AirQualityResponse
 
 
 app = FastAPI(
@@ -92,3 +92,9 @@ async def air_quality(
         return await get_air_quality(city)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

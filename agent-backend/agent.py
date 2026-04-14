@@ -14,21 +14,16 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 # It creates a connection to Google's Gemini API.
 # LangChain wraps it so it integrates with agents, tools, and prompts.
 
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-# create_tool_calling_agent: A FUNCTION (not a reserved word)
-# that wires together an LLM + tools + prompt into an "agent"
-# object. The agent is the decision maker (picks tools).
-#
-# AgentExecutor: A CLASS that runs the agent loop. The loop is:
-# ask LLM -> parse output -> if tool call: run it, feed back,
-# go again -> if final answer: return it.
+from langgraph.prebuilt import create_react_agent
+# create_react_agent: Creates a ReAct (Reasoning + Acting) agent
+# using LangGraph. This is the modern way to build agents.
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 # ChatPromptTemplate: Structures the messages sent to the LLM.
 # MessagesPlaceholder: A dynamic slot where messages get inserted.
 
-from .config import GEMINI_API_KEY
-from .tools import ALL_TOOLS
+from config import GEMINI_API_KEY, GEMINI_MODEL
+from tools import ALL_TOOLS
 
 
 # ---- THE SYSTEM PROMPT ----
@@ -53,37 +48,11 @@ When answering questions:
 """
 
 
-# ---- PROMPT TEMPLATE ----
-prompt = ChatPromptTemplate.from_messages([
-    ("system", SYSTEM_PROMPT),
-    # The system message. The LLM always sees this first.
-    # It sets the behavior, personality, and rules.
-
-    MessagesPlaceholder(variable_name="chat_history", optional=True),
-    # A slot for past conversation messages. Optional because
-    # the first message has no history. We are not using multi-turn
-    # memory in this project, but including this makes it easy to add.
-
-    ("human", "{input}"),
-    # The user's current question. {input} gets replaced with
-    # the actual text when .invoke() is called.
-
-    MessagesPlaceholder(variable_name="agent_scratchpad"),
-    # CRITICAL: This is where LangChain puts tool call results.
-    # When the LLM calls a tool, the result goes here so the LLM
-    # can see it on the next iteration. DO NOT REMOVE THIS.
-    # Without it, the LLM would never see the tool results and
-    # would keep calling tools in an infinite loop.
-])
-
-
 # ---- CREATE THE LLM ----
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
-    # The model to use. "gemini-2.0-flash" is fast and capable,
-    # reliable for tool calling. Alternatives:
-    # "gemini-1.5-pro" = more capable but slower
-    # "gemini-1.5-flash" = previous generation, still works well
+    model=GEMINI_MODEL,
+    # The model to use is read from config/env so deprecations
+    # can be handled without code edits.
 
     temperature=0.3,
     # Controls randomness in the LLM's output.
@@ -100,34 +69,12 @@ llm = ChatGoogleGenerativeAI(
 
 
 # ---- CREATE THE AGENT ----
-agent = create_tool_calling_agent(llm, ALL_TOOLS, prompt)
-# This function (NOT a reserved word, just a LangChain function)
-# wires together:
+# Create a ReAct agent using LangGraph's prebuilt factory
+# The system prompt is incorporated through the tool docstrings,
+# which are descriptive enough to guide the LLM behavior.
+agent_executor = create_react_agent(llm, ALL_TOOLS)
+# This creates a complete agent with:
 # 1. The LLM (brain that makes decisions)
 # 2. The tools (capabilities the brain can use)
-# 3. The prompt (instructions for the brain)
-# It returns an "agent" object that knows HOW to decide,
-# but cannot execute anything on its own.
-
-
-# ---- CREATE THE EXECUTOR ----
-agent_executor = AgentExecutor(
-    agent=agent,
-    # The decision-making agent we just created.
-
-    tools=ALL_TOOLS,
-    # The actual functions. The agent has tool DESCRIPTIONS
-    # (for the LLM to read). The executor has the actual FUNCTIONS
-    # (to run when the LLM picks one). That is why both get tools.
-
-    verbose=True,
-    # Prints each step to the terminal. EXTREMELY useful for
-    # debugging. You will see:
-    # "Invoking get_current_weather with {'city': 'London'}"
-    # "Tool result: {temperature_celsius: 12.5, ...}"
-    # Set to False in production.
-
-    handle_parsing_errors=True
-    # If the LLM returns malformed output (happens rarely),
-    # instead of crashing, it retries or returns a fallback message.
-)
+# 3. Built-in ReAct loop (reasoning + acting)
+# It returns an executor that can be invoked directly.
