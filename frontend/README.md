@@ -105,11 +105,7 @@ The frontend POSTs to `http://localhost:8001/chat`:
 
 ```javascript
 {
-  "query": "What's the weather in London?",
-  "chat_history": [
-    { "role": "user", "content": "..." },
-    { "role": "assistant", "content": "..." }
-  ]
+  "message": "What's the weather in London?"
 }
 ```
 
@@ -118,12 +114,11 @@ The frontend POSTs to `http://localhost:8001/chat`:
 Expected response:
 ```json
 {
-  "response": "The weather in London is...",
-  "query": "What's the weather in London?",
-  "timestamp": "2024-04-14T10:30:45.123456",
-  "tools_used": ["get_weather_forecast"]
+  "response": "The weather in London is..."
 }
 ```
+
+If Gemini quota/model access is unavailable, `response` may contain an explanatory provider error message returned by the backend.
 
 ## Keyboard Shortcuts
 

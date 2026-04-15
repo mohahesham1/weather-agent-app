@@ -21,7 +21,7 @@
 📁 `agent-backend/`
 - **Status**: ✅ Complete and functional
 - **Port**: 8001
-- **Technology**: FastAPI + LangChain + Gemini 2.0 Flash
+- **Technology**: FastAPI + LangChain + Gemini (env-configurable model)
 - **Components**:
   - **config.py**: Environment variables, API keys
   - **tools.py**: Three @tool decorated functions
@@ -29,7 +29,7 @@
     - `get_weather_forecast` (httpx → MCP server)
     - `get_air_quality` (httpx → MCP server)
   - **agent.py**: LangChain agent orchestration
-    - ChatGoogleGenerativeAI (Gemini 2.0 Flash)
+    - ChatGoogleGenerativeAI (model from `GEMINI_MODEL`, default `gemini-2.5-flash`)
     - create_tool_calling_agent + AgentExecutor
     - System prompt for friendly weather advice
   - **main.py**: FastAPI service with POST /chat endpoint
@@ -72,7 +72,7 @@ User Browser
      └─→ POST http://localhost:8001/chat (agent-backend)
          │
          ├─→ LangChain Agent
-         │   - Receives: { query, chat_history }
+         │   - Receives: { message }
          │   - Thinks: "Should I use current, forecast, or air quality tool?"
          │   - Calls tools based on query understanding
          │
@@ -187,9 +187,9 @@ Get key: https://aistudio.google.com/apikey
 **User types in browser**: "Should I bring an umbrella to Paris tomorrow?"
 
 **Flow**:
-1. Frontend sends: `{ query: "Should I bring an umbrella...", chat_history: [] }`
+1. Frontend sends: `{ message: "Should I bring an umbrella..." }`
 2. Agent Backend receives request
-3. Gemini 2.0 Flash analyzes: "User wants forecast for Paris"
+3. Gemini analyzes: "User wants forecast for Paris"
 4. Agent calls both tools:
    - `get_weather_forecast("Paris")` → Gets daily predictions
    - Could also call `get_current_weather("Paris")` for context
@@ -315,7 +315,7 @@ curl "http://localhost:8000/weather/air-quality?city=London"
 # Chat with agent
 curl -X POST http://localhost:8001/chat \
   -H "Content-Type: application/json" \
-  -d '{"query": "What is the weather in Rome?"}'
+  -d '{"message": "What is the weather in Rome?"}'
 ```
 
 ## 🎓 Learning Resources

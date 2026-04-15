@@ -1,6 +1,6 @@
 # Weather Agent App 🌤️
 
-A **full-stack AI-powered weather chatbot** built with FastAPI, LangChain, and Gemini 2.0 Flash. Ask natural language questions about weather, forecasts, and air quality—the agent fetches real-time data and provides friendly, actionable advice.
+A **full-stack AI-powered weather chatbot** built with FastAPI, LangChain, and Gemini. Ask natural language questions about weather, forecasts, and air quality—the agent fetches real-time data and provides friendly, actionable advice.
 
 ---
 
@@ -48,7 +48,7 @@ weather-agent-app/
 │   Agent Backend (FastAPI)   │ (Port 8001)
 │  - LangChain Agent          │
 │  - Tool Calling with LLM    │
-│  - Gemini 2.0 Flash         │
+│  - Gemini (env-configurable)│
 └──────────────┬──────────────┘
                │ HTTP calls
                │
@@ -105,6 +105,7 @@ Get a free API key from [OpenWeatherMap](https://openweathermap.org/api).
 #### `agent-backend/.env`
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 MCP_SERVER_URL=http://localhost:8000
 AGENT_TIMEOUT=30
 MAX_ITERATIONS=10
@@ -190,7 +191,7 @@ Try asking the agent natural language questions:
 | **LLM Framework** | LangChain | 1.2.15 |
 | **LLM Core** | langchain-core | 1.2.28 |
 | **Graph Execution** | LangGraph | 1.1.6 |
-| **LLM Model** | Google Gemini 2.0 Flash | Latest |
+| **LLM Model** | Google Gemini (configured by `GEMINI_MODEL`) | `gemini-2.5-flash` default |
 | **Data Validation** | Pydantic | 2.13.0 |
 | **Async HTTP** | httpx | 0.28.1 |
 | **Frontend** | Plain HTML/CSS/JS | ES6+ |
@@ -221,11 +222,38 @@ Runs a LangChain agent with tool calling. Implements three @tool functions:
 **POST `/chat` endpoint:**
 ```json
 {
-  "chat_history": [
-    {"role": "user", "content": "What's the weather in London?"}
-  ]
+  "message": "What's the weather in London?"
 }
 ```
+
+---
+
+## Prompt Evidence (Agentic IDE)
+
+The project was implemented in an agentic workflow using Cursor. Below are representative prompts used to generate and refine key parts of the system:
+
+1. **MCP wrapper scaffolding**
+   - "Create a FastAPI MCP wrapper for OpenWeather with `/weather/current`, `/weather/forecast`, and `/weather/air-quality` endpoints, with Pydantic models and error handling."
+2. **LLM tool-calling backend**
+   - "Set up LangChain/LangGraph weather agent tools that call the MCP server, then wire a `/chat` endpoint in FastAPI."
+3. **Frontend integration**
+   - "Build a plain HTML/CSS/JS chat UI that sends messages to backend `/chat`, shows loading state, and handles errors."
+4. **Runtime debugging**
+   - "Why does `python main.py` exit immediately? Add the missing FastAPI entrypoint startup so services stay running."
+5. **Quality and test coverage**
+   - "Create an HTTP test script with multiple input cases for MCP endpoints and optional agent chat checks."
+
+These prompts can be shown in the video as evidence of the development approach and iterative agentic workflow.
+
+---
+
+## Gemini Runtime Notes
+
+- The backend model is configurable using `GEMINI_MODEL` (default: `gemini-2.5-flash`).
+- A valid `GEMINI_API_KEY` is required for `/chat`.
+- Gemini API access depends on project quota/billing and model availability.
+- If quota is exceeded or model access is unavailable, `/chat` may return an error message from the provider (for example HTTP 429 or 404 from Gemini API).
+- Verify usage and limits at [Gemini API rate limits](https://ai.google.dev/gemini-api/docs/rate-limits).
 
 ### Frontend (`frontend/`)
 Single-page chat UI with:

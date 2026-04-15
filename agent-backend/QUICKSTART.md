@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the agent backend for the weather application. It runs a **LangChain agent powered by Gemini 2.0 Flash** that provides weather advice by calling three tools:
+This is the agent backend for the weather application. It runs a **LangChain agent powered by Gemini** (configurable via `GEMINI_MODEL`) that provides weather advice by calling three tools:
 
 - **get_current_weather**: Get real-time weather for a city
 - **get_weather_forecast**: Get a 5-day forecast
@@ -20,7 +20,7 @@ Each tool calls our **MCP Server** (running on localhost:8000), which in turn ca
            ▼
 ┌──────────────────────────┐
 │  Agent Backend (Python)  │ (port 8001)
-│  - Gemini 2.0 Flash      │
+│  - Gemini (env model)    │
 │  - LangChain Agent       │
 │  - 3 Tools               │
 └──────────┬───────────────┘
@@ -60,7 +60,8 @@ Then edit `.env` and add your Gemini API key:
 
 ```
 GEMINI_API_KEY=your_actual_gemini_api_key_here
-MCP_SERVER_BASE_URL=http://localhost:8000
+GEMINI_MODEL=gemini-2.5-flash
+MCP_SERVER_URL=http://localhost:8000
 ```
 
 ### Step 2: Start the MCP Server
@@ -120,37 +121,15 @@ Response includes the Gemini model, available tools, and system prompt.
 curl -X POST http://localhost:8001/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "Should I bring an umbrella to London tomorrow?"
+    "message": "Should I bring an umbrella to London tomorrow?"
   }'
 ```
 
 Response:
 ```json
 {
-  "response": "Let me check the forecast for London... [Agent response with practical advice]",
-  "query": "Should I bring an umbrella to London tomorrow?",
-  "timestamp": "2024-12-20T10:30:45.123456"
+  "response": "Let me check the forecast for London... [Agent response with practical advice]"
 }
-```
-
-**With chat history:**
-
-```bash
-curl -X POST http://localhost:8001/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "What about air quality?",
-    "chat_history": [
-      {
-        "role": "user",
-        "content": "Tell me about the weather in London"
-      },
-      {
-        "role": "assistant",
-        "content": "London currently has a temperature of 10°C with..." 
-      }
-    ]
-  }'
 ```
 
 ## Environment Variables
@@ -158,7 +137,8 @@ curl -X POST http://localhost:8001/chat \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GEMINI_API_KEY` | (required) | Your Google Gemini API key |
-| `MCP_SERVER_BASE_URL` | `http://localhost:8000` | MCP server address |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name to use |
+| `MCP_SERVER_URL` | `http://localhost:8000` | MCP server address |
 | `AGENT_TIMEOUT` | `30` | Timeout in seconds |
 | `MAX_ITERATIONS` | `10` | Max agent loop iterations |
 
@@ -167,7 +147,7 @@ curl -X POST http://localhost:8001/chat \
 ```
 agent-backend/
 ├── main.py          # FastAPI app with /chat endpoint
-├── agent.py         # LangChain agent setup with Gemini 2.0 Flash
+├── agent.py         # LangChain agent setup with Gemini model from env
 ├── tools.py         # Three tool definitions (call MCP server)
 ├── config.py        # Configuration and environment loading
 ├── requirements.txt # Python dependencies
@@ -177,8 +157,8 @@ agent-backend/
 
 ## How It Works
 
-1. **User sends a query** → POST /chat endpoint
-2. **Agent receives query** → Creates tool calls
+1. **User sends a message** → POST /chat endpoint
+2. **Agent receives message** → Creates tool calls
 3. **Tools execute** → Each tool makes an HTTP request to MCP server
 4. **MCP server responds** → Returns weather data
 5. **Agent processes** → Combines data and generates response
@@ -186,14 +166,13 @@ agent-backend/
 
 ## The Agent's Capabilities
 
-The Gemini 2.0 Flash agent can:
+The Gemini-based agent can:
 
 - ✅ Understand natural language questions about weather
 - ✅ Decide which tools to call based on the question
 - ✅ Call **multiple tools** in one response (e.g., current weather + forecast + air quality)
 - ✅ Format responses in a friendly, conversational manner
 - ✅ Provide practical advice (e.g., "bring an umbrella", "avoid outdoor activities")
-- ✅ Handle follow-up questions with context from chat history
 
 ## Troubleshooting
 
@@ -205,7 +184,7 @@ The Gemini 2.0 Flash agent can:
 ### `Connection refused to localhost:8000`
 - Make sure MCP server is running: `python ../mcp-server/main.py`
 - Check that it's on port 8000
-- Or update `MCP_SERVER_BASE_URL` in `.env`
+- Or update `MCP_SERVER_URL` in `.env`
 
 ### `Tool execution failed`
 - Check the agent logs for detailed error messages
@@ -221,16 +200,19 @@ The Gemini 2.0 Flash agent can:
 
 ```python
 from agent import agent_executor
+from langchain_core.messages import HumanMessage
 
-# Run a query
+# Run a single message
 result = agent_executor.invoke({
-    "input": "What's the weather like in Tokyo?",
-    "chat_history": [],
-    "agent_scratchpad": "",
+    "messages": [HumanMessage(content="What's the weather like in Tokyo?")]
 })
 
-print(result["output"])
+print(result)
 ```
+
+## Gemini Runtime Dependency
+
+The `/chat` route depends on Gemini API runtime availability. If your key has no quota or the selected model is unavailable, the backend will return provider errors from Gemini (for example `429 RESOURCE_EXHAUSTED` or `404 NOT_FOUND`).
 
 ## Next Steps
 

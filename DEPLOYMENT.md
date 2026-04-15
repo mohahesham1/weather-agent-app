@@ -18,7 +18,7 @@ This guide shows how to run the entire Weather Agent application locally.
 │              Agent Backend (Python FastAPI)                    │
 │  ┌──────────────────────────────────────────────────────────┐ │
 │  │  - Server on http://localhost:8001                       │ │
-│  │  - Gemini 2.0 Flash LLM                                  │ │
+│  │  - Gemini LLM (configurable via GEMINI_MODEL)            │ │
 │  │  - LangChain Agent with Tool Calling                     │ │
 │  │  - Three @tool decorated functions                       │ │
 │  └────────────────────────┬─────────────────────────────────┘ │
@@ -210,8 +210,18 @@ curl "http://localhost:8000/weather/air-quality?city=London"
 # Test Agent Backend
 curl -X POST http://localhost:8001/chat \
   -H "Content-Type: application/json" \
-  -d '{"query": "What is the weather in Paris?"}'
+  -d '{"message": "What is the weather in Paris?"}'
 ```
+
+### Gemini Quota and Model Access
+
+The `/chat` endpoint depends on Google Gemini runtime access. Make sure:
+
+1. `GEMINI_API_KEY` is valid.
+2. `GEMINI_MODEL` is set to an available model (default is `gemini-2.5-flash`).
+3. The Google project has available quota/billing for the selected model.
+
+If not, chat requests can fail with provider errors such as `429 RESOURCE_EXHAUSTED` (quota exceeded) or `404 NOT_FOUND` (model unavailable to project).
 
 ## Troubleshooting
 
